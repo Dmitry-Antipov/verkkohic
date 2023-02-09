@@ -1,0 +1,98 @@
+HIFI_READS = config.get('HIFI_READS')
+ONT_READS  = config.get('ONT_READS')
+HIC_READS1  = config.get('HIC_READS1')
+HIC_READS2  = config.get('HIC_READS2')
+
+PREVIOUS_VERKKO_RUN = config.get('PREVIOUS_VERKKO_RUN')
+VERKKO = config.get('VERKKO')
+PSTOOLS = config.get('PSTOOLS')
+
+rule all:
+    input:
+        'final_consensus/assembly.fasta'
+
+rule getUncompressedUnitigs:
+    input:
+        ONT_READS
+        HIFI_READS
+        PREVIOUS_VERKKO_RUN
+    output:
+        'consenus_unitigs/6-layoutContigs/unitig-popped.layout.scfmap'
+        'consenus_unitigs/assembly.fasta'
+
+rule copyFiles:
+    input:
+        '{PREVIOUS_VERKKO_RUN}/assembly.homopolymer-compressed.gfa'
+        '{PREVIOUS_VERKKO_RUN}/assembly.homopolymer-compressed.noseq.gfa'
+        'consenus_unitigs/6-layoutContigs/unitig-popped.layout.scfmap'
+        'consenus_unitigs/assembly.fasta'
+    output:
+        'contigs_rename.map'
+        'unitigs.fasta'
+        'unitigs.hpc.fasta' 
+        'unitigs.hpc.noseq.gfa'
+       
+rule runMashMap:
+    input:
+        'unitigs.hpc.fasta'
+    output:
+        'unitigs.matches'
+
+rule alignHIC:
+    input:
+        HIC_READS1
+        HIC_READS2
+        'unitigs.fasta'       
+    output:
+        'hic_mapping.byread.output'
+
+rule hicPhasing:
+    input:
+        PREVIOUS_VERKKO_RUN
+        'unitigs.matches'
+        'hic_mapping.byread.output'
+        'unitigs.hpc.noseq.gfa'
+    output:
+        'hic.byread.compressed'
+        'hicverkko.colors.tsv'
+
+rule runRukki:
+    input:
+        graph: 'unitigs.hpc.noseq.gfa'
+        binning: 'hicverkko.colors.tsv'
+    output:
+        tsv_path: 'rukki.paths.tsv'
+        gfa_path: 'rukki.paths.gaf'
+    shell:
+        '''
+echo "---Running rukki on the resulting clustering"
+params=""
+params="$params --init-assign out_init_ann.csv"
+params="$params --refined-assign out_refined_ann.csv"
+params="$params --final-assign out_final_ann.csv"
+params="$params --marker-sparsity 5000"
+params="$params --issue-sparsity 1000"
+params="$params --try-fill-bubbles"
+
+if [ xtrio = xtrio ]; then
+   params="$params --issue-len 200000  --marker-ratio 5. --issue-ratio 3. --issue-cnt 100"
+else
+   params="$params --issue-len 2000000 --marker-ratio 3. --issue-ratio 2. --issue-cnt 1000"
+fi
+
+
+{VERKKO}/lib/verkko/bin/rukki trio -g input.graph -m input.binning --gaf-format -p output.tsv_path \$params
+{VERKKO}/lib/verkko/bin/rukki trio -g input.graph -m input.binning --gaf-format -p output.gaf_path \$params
+        '''
+
+rule getFinalContigs:
+    input:
+        'rukki.paths.gaf'
+        ONT_READS
+        HIFI_READS
+        PREVIOUS_VERKKO_RUN
+    output:
+        'final_consensus/assembly.fasta'
+
+
+    
