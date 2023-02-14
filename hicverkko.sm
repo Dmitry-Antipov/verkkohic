@@ -39,7 +39,7 @@ rule copyFiles:
 #        previous_graph = 'PREVIOUS_VERKKO_RUN/assembly.homopolymer-compressed.gfa',
 #        previous_noseq_graph = 'PREVIOUS_VERKKO_RUN/assembly.homopolymer-compressed.noseq.gfa',
 #        unitig_scfmap = 'consensus_unitigs/6-layoutContigs/unitig-popped.layout.scfmap',
-        unitig_dir = directory('consensus_unitigs'),
+#        unitig_dir = 'consensus_unitigs',
         unitig_assembly = 'consensus_unitigs/assembly.fasta'
     output:
         rename_map = 'contigs_rename.map',
