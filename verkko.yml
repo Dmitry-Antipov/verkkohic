@@ -10,7 +10,6 @@ PREVIOUS_VERKKO_RUN:  '/data/antipovd2/data/ecoli_test/asm2/'
 HIFI_READS:
  - '/gpfs/gsfs11/users/antipovd2/data/ecoli_test/./hifi.fastq.gz'
 
-withONT:             'True'
 ONT_READS:
  - '/gpfs/gsfs11/users/antipovd2/data/ecoli_test/./ont.fastq.gz'
 
