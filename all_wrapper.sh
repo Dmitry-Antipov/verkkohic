@@ -1,10 +1,12 @@
 #!/bin/bash
-#module load gcc/9.2.0 
-#module load python/3.8
-#module load mashmap
-#module load snakemake
-#PSTOOLS=/gpfs/gsfs11/users/antipovd2/devel/tmp_pstools/
-#VERKKO=/data/korens/devel/verkko-tip/
+module load gcc/9.2.0 
+module load python/3.8
+module load mashmap
+module load snakemake
+PSTOOLS=/gpfs/gsfs11/users/antipovd2/devel/tmp_pstools/
+VERKKO=/data/korens/devel/verkko-tip/
+VERKKO=/data/antipovd2/devel/verkko/
+
 
 HIC1=$3/*hic*/*R1*fastq.gz
 HIC2=$3/*hic*/*R2*fastq.gz

@@ -1,10 +1,10 @@
+#!/usr/bin/env python3
 import sys
 import random
 import networkx as nx
 import math
 import os
 import graph_functions
-from networkx.algorithms import community
 
 def check_non_empty(part, G):
     for p in part:
@@ -339,7 +339,7 @@ def run_clustering (graph_gfa, homologous_nodes, hic_byread, output_dir):
                                 p2.append(n)
     #            print("Initial partitions are %s and %s" % (set(p1), set(p2)))
                 if len(p1) * len(p2) > 0:
-                    part = community.kernighan_lin.kernighan_lin_bisection(C, partition=[set(p1), set(p2)], max_iter=KLIN_ITER,
+                    part = nx.algorithms.community.kernighan_lin.kernighan_lin_bisection(C, partition=[set(p1), set(p2)], max_iter=KLIN_ITER,
                                                                            weight='weight', seed=seed)
                     sum_w = 0
                     for i in part[0]:
