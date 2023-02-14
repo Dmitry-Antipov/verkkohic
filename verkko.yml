@@ -1,0 +1,25 @@
+#VERKKO:              '/data/korens/devel/verkko-tip/'
+VERKKO: '/data/antipovd2/devel/verkko/'
+PSTOOLS:             '/gpfs/gsfs11/users/antipovd2/devel/tmp_pstools/'
+HICVERKKO:           '/gpfs/gsfs11/users/antipovd2/devel/verkkohic'
+
+PYTHON:              ''
+PREVIOUS_VERKKO_RUN:  '/data/antipovd2/data/ecoli_test/asm2/'
+
+
+HIFI_READS:
+ - '/gpfs/gsfs11/users/antipovd2/data/ecoli_test/./hifi.fastq.gz'
+
+withONT:             'True'
+ONT_READS:
+ - '/gpfs/gsfs11/users/antipovd2/data/ecoli_test/./ont.fastq.gz'
+
+HIC_READS1:
+ - '/data/antipovd2/data/ecoli_test/tst_hic/test.R1.fastq.gz'
+ - '/data/antipovd2/data/ecoli_test/tst_hic/test.R2.fastq.gz'
+
+HIC_READS2:
+ - '/data/antipovd2/data/ecoli_test/tst_hic/test.R2.fastq.gz'
+ - '/data/antipovd2/data/ecoli_test/tst_hic/test.R1.fastq.gz'
+
+
