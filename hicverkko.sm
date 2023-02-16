@@ -6,6 +6,8 @@ HIC_READS2  = config.get('HIC_READS2')
 
 #runtime opt string like slurm or mem limits
 VERKKO_OPTS = config.get('VERKKO_OPTS')
+if VERKKO_OPTS == "None":
+    VERKKO_OPTS = ""
 
 PREVIOUS_VERKKO_RUN = config.get('PREVIOUS_VERKKO_RUN')
 VERKKO = config.get('VERKKO')
@@ -29,8 +31,10 @@ rule getUncompressedUnitigs:
     output:
 #can not add this as output since it will create 6-layoutContigs folder which will break verkko.sh logic
 #        unitig_scfmap = 'consensus_unitigs/6-layoutContigs/unitig-popped.layout.scfmap',
-        unitig_assembly = 'consensus_unitigs/assembly.fasta'
+        unitig_assembly = 'consensus_unitigs/assembly.fasta',
+        unitig_dir = directory('consensus_unitigs')
 #TODO: directory output
+#       shell: 'echo {VERKKO}/bin/verkko {VERKKO_OPTS} --paths {input.verkko_run}/6-layoutContigs/consensus_paths.txt --assembly {PREVIOUS_VERKKO_RUN} -d consensus_unitigs --hifi {HIFI_READS} --nano {ONT_READS}'
     shell: 'sh {VERKKO}/bin/verkko {VERKKO_OPTS} --paths {input.verkko_run}/6-layoutContigs/consensus_paths.txt --assembly {PREVIOUS_VERKKO_RUN} -d consensus_unitigs --hifi {HIFI_READS} --nano {ONT_READS}'
         
 rule copyFiles:
@@ -39,7 +43,7 @@ rule copyFiles:
 #        previous_graph = 'PREVIOUS_VERKKO_RUN/assembly.homopolymer-compressed.gfa',
 #        previous_noseq_graph = 'PREVIOUS_VERKKO_RUN/assembly.homopolymer-compressed.noseq.gfa',
 #        unitig_scfmap = 'consensus_unitigs/6-layoutContigs/unitig-popped.layout.scfmap',
-#        unitig_dir = 'consensus_unitigs',
+        unitig_dir = 'consensus_unitigs',
         unitig_assembly = 'consensus_unitigs/assembly.fasta'
     output:
         rename_map = 'contigs_rename.map',
@@ -48,8 +52,8 @@ rule copyFiles:
         unitig_graph = 'unitigs.hpc.noseq.gfa'
     shell:
         '''
-cat {input.unitig_dir}/6-layoutContigs/unitig-popped.layout.scfmap | awk '{{if (match($1, "path")) print $2"\\t"$3}}' > contigs_rename.map
-python3 {VERKKO}/lib/verkko/scripts/process_reads.py rename {output.unitig_fasta}  contigs_rename.map {input.unitig_assembly}
+cat {input.unitig_dir}/6-layoutContigs/unitig-popped.layout.scfmap | awk '{{if (match($1, "path")) print $2"\\t"$3}}' > {output.rename_map}
+python3 {VERKKO}/lib/verkko/scripts/process_reads.py rename {output.unitig_fasta}  {output.rename_map} {input.unitig_assembly}
 
 awk '/^S/{{print ">"$2"\\n"$3}}' {input.verkko_run}/assembly.homopolymer-compressed.gfa | fold > {output.unitig_hpc}
 cp {input.verkko_run}/assembly.homopolymer-compressed.noseq.gfa {output.unitig_graph}

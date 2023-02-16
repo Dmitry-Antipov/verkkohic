@@ -3,6 +3,7 @@ VERKKO: '/data/antipovd2/devel/verkko/'
 PSTOOLS:             '/gpfs/gsfs11/users/antipovd2/devel/tmp_pstools/'
 HICVERKKO:           '/gpfs/gsfs11/users/antipovd2/devel/verkkohic'
 
+VERKKO_OPTS:    ' --slurm'
 PYTHON:              ''
 PREVIOUS_VERKKO_RUN:  '/data/antipovd2/data/ecoli_test/asm2/'
 
