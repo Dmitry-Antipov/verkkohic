@@ -38,7 +38,12 @@ def get_phased_edges(phasedfile):
     return phased
 
 #Evaluate paths using only phased edges. If empty set passed - all edges are used.
-def evaluate_rukki(rukkifile, triofile, phased_edges, out_f):
+def evaluate_rukki(rukkifile, gfafile, triofile, phased_edges, out_f):
+    lengths = {}
+    for line in open(gfafile, 'r'):
+        arr = line.split()
+        if arr[0] == "S":
+            lengths[arr[1]] = int(arr[3].split(':')[-1])
     colors = {}
     for line in open(triofile, 'r'):
         arr = line.split()
@@ -56,11 +61,14 @@ def evaluate_rukki(rukkifile, triofile, phased_edges, out_f):
     unassigned = 0
     assigned = 0
     errors = 0
+    error_l = 0
+    total_l = 0
     for line in open(rukkifile):
         strpath = line.split()[1]
         path = strpath.split(',')
         state = "0"
         prev_contig = ""
+        hap_l = [0,0]
         for sp in path:
             p = sp[:-1]
             if p in colors:
@@ -75,17 +83,23 @@ def evaluate_rukki(rukkifile, triofile, phased_edges, out_f):
                     assigned += 1            
                     prev_contig = p
                     state = colors[p]
-    out_f.write(f"Among contigs in paths, using uncolored/colored {unassigned}/{assigned} edges, we see {errors} errors\n")
-
+                    if state == 'p':
+                        hap_l[0] += lengths[p]
+                    else:
+                        hap_l[1] += lengths[p]
+        error_l += min(hap_l[0], hap_l[1])
+        total_l += hap_l[0] + hap_l[1]
+    out_f.write(f"Among contigs in paths {rukkifile}, using uncolored/colored {unassigned}/{assigned} edges, we see {errors} errors\n")
+    out_f.write(f"Hamming error rate estimate for {rukkifile}: {error_l/total_l:.4f}\n")
 if __name__ == "__main__":                
-    if len(sys.argv) < 3:
-        print(f'Usage: {sys.argv[0]} <rukkifile.tsv> <trio.csv> [binned edges csv]')
+    if len(sys.argv) < 4:
+        print(f'Usage: {sys.argv[0]} <rukkifile.tsv> <gfa file> <trio.csv> [binned edges csv]')
         exit()
-    if len(sys.argv) == 3:
-        evaluate_rukki(sys.argv[1], sys.argv[2], set(), sys.stdout)
+    if len(sys.argv) == 4:
+        evaluate_rukki(sys.argv[1], sys.argv[2], sys.argv[3], set(), sys.stdout)
     else:
         classified = set()
-        for line in open (sys.argv[3],'r'):
+        for line in open (sys.argv[4],'r'):
             classified.add(line.split()[0])
-        evaluate_rukki(sys.argv[1], sys.argv[2], classified, sys.stdout)
+        evaluate_rukki(sys.argv[1], sys.argv[2], sys.argv[3], classified, sys.stdout)
 
