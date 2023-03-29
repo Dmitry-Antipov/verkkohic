@@ -64,6 +64,9 @@ def collapseOrientedNode (edges, node):
         if ornode in edges:
             edges.pop(ornode)
 
+#returns pair of nodes near PAR that should be connected via fake homology, currently placeholder
+def checkXYcomponent(current_component):
+    return [0, 0]
 def fixUnbalanced(part, C, G):
     auxs = [0, 0]
     lens = [0, 0]
@@ -210,7 +213,9 @@ def run_clustering (graph_gfa, homologous_nodes, hic_byread, output_dir):
     translate = open(homologous_nodes, 'r')
 
     component_colors = {}
+    next_comps = {}
     current_color = 0
+    match_links = []
     for current_component in sorted(nx.connected_components(G), key=len, reverse=True):
         for e in current_component:
             component_colors[e] = current_color
@@ -224,16 +229,29 @@ def run_clustering (graph_gfa, homologous_nodes, hic_byread, output_dir):
         if line[0] == line[1]:
             continue
         matchGraph.add_edge(line[0], line[1])
-        #Adding link between matched edges to include separated sequence to main component
+        match_links.append([line[0], line[1]])
+        for id in range(0, 2):
+            cur_comp = component_colors[line[id]]
+            next_comp = component_colors[line[1 - id]]
+            if not (cur_comp in next_comps):
+                next_comps[cur_comp] = set()
+            next_comps[cur_comp].add(next_comp)
 
+        #Adding link between matched edges to include separated sequence to main component
+    for line in match_links:
         if line[0] in G.nodes and line[1] in G.nodes:
             if component_colors[line[0]] != component_colors[line[1]]:
                 if line[0] in largest_component and line[1] in largest_component:
                     logging_f.write(f"Attempt to restore removed link in former rDNA component between {line[0]} {line[1]} forbidden\n")
                 else:
-                    logging_f.write(f"Currently not adding graph link between homologous {line[0]} {line[1]}, components {component_colors[line[0]]} "
+                    for id in range(0, 2):
+                        if next_comps[component_colors[line[id]]].size() > 1:
+                            logging_f.write(f"Connected component of node {line[id]} color {component_colors[line[id]]} connected to:\n")
+                            for j in next_comps[component_colors[line[id]]]:
+                                logging_f.write(f"connection {j}\n")
+                    logging_f.write(f"Adding graph link between homologous {line[0]} {line[1]}, components {component_colors[line[0]]} "
                           f" and {component_colors[line[1]]}\n")
-    #                G.add_edge(line[0], line[1])
+                    G.add_edge(line[0], line[1])
 
     sys.stderr.write("Loaded match info with %d nodes and %d edges\n" % (matchGraph.number_of_nodes(), matchGraph.number_of_edges()))
     translate.close()
@@ -413,6 +431,13 @@ def run_clustering (graph_gfa, homologous_nodes, hic_byread, output_dir):
                             C.add_edge(ec[1], ec[0], weight=-10 * FIXED_WEIGHT)
             for edge in C.edges:
                 logging_f.write(f'HIC edge: {edge} {C.edges[edge]}\n')
+#placeholder for XY special processing
+            res = checkXYcomponent(current_component)
+            if res != [0, 0]:
+                sys.stderr.write(f"XY found, {res[0]} {res[1]}, adding fake links")
+                if res[0] in C and res[1] in C:
+                    C.add_edge(res[0], res[1], weight=-10 * FIXED_WEIGHT)
+                    C.add_edge(res[1], res[0], weight=-10 * FIXED_WEIGHT)
             best_score = FIXED_WEIGHT * C.number_of_nodes() * C.number_of_nodes()
 
             for seed in range(0, KLIN_STARTS):  # iterate on starting partition
