@@ -10,20 +10,11 @@ import cluster
 if len(sys.argv) < 3:
     print(f'Usage: {sys.argv[0]} <input_dir> <output_dir>')
     exit()
-# build mappings
-# this used the homoplymer compressed contigs but could probably use regular  as well
 
-#run clustering
-#python3 cluster.py unitig-popped-unitig-normal-connected-tip.homopolymer-compressed.noseq.gfa unitig-popped-unitig-normal-connected-tip.homopolymer-compressed.matches hic_mapping.byread.output > cluster.out 2> cluster.err
-
-#convert to rukki inputs
-#sh convert.sh
-
-# run rukki
-#sh rukki.sh
 cur_dir = os.path.abspath(os.path.dirname(__file__))
 input_dir = sys.argv[1]
 output_dir = sys.argv[2]
+os.system(f"mkdir -p {output_dir}")
 eval_file = ""
 if len(sys.argv) > 3:
     eval_file = os.path.join(sys.argv[2], sys.argv[3])
@@ -33,7 +24,10 @@ os.makedirs(output_dir, exist_ok=True)
 #TODO
 #mashmap -r unitig-popped-unitig-normal-connected-tip.homopolymer-compressed.fasta -q unitig-popped-unitig-normal-connected-tip.homopolymer-compressed.fasta -t 8 -f none --pi 95 -s 10000
 #cat mashmap.out |awk '{if ($NF > 99 && $4-$3 > 500000 && $1 != $6) print $1"\t"$6}'|sort |uniq > unitig-popped-unitig-normal-connected-tip.homopolymer-compressed.matches
+
 matches_file = os.path.join(input_dir, "unitig-popped-unitig-normal-connected-tip.homopolymer-compressed.matches")
+matches_file = os.path.join(input_dir, "unitigs.matches")
+
 hic_file = os.path.join(input_dir, "hic_mapping.byread.output")
 if not os.path.exists(hic_file):
     hic_file = os.path.join(input_dir, "hic.byread.compressed")
@@ -42,11 +36,11 @@ if os.path.exists(compressed_hic):
     hic_file = compressed_hic
 
 noseq_gfa = os.path.join(input_dir, "unitig-popped-unitig-normal-connected-tip.homopolymer-compressed.noseq.gfa")
+noseq_gfa = os.path.join(input_dir, "unitigs.hpc.noseq.gfa")
+
 clustering_output = os.path.join(output_dir, "cluster.out")
 
 
-#csv_output = os.path.join(input_dir, "unitig-popped-unitig-normal-connected-tip.UPDshasta.colors.csv")
-#shutil.copy(csv_output, os.path.join(output_dir, "unitig-popped-unitig-normal-connected-tip.colors.csv"))
 
 cluster.run_clustering(noseq_gfa, matches_file, hic_file, output_dir)
 #os.system(f'python3 {os.path.join(cur_dir, "cluster.py")} {noseq_gfa} {matches_file} {hic_file} {output_dir}> {clustering_output}')
@@ -94,10 +88,12 @@ rukki_line += " --issue-len 200000  --marker-ratio 5. --issue-ratio 3. --issue-c
 #what about rukki options?
 rukki_line += f'--init-assign {os.path.join(output_dir, "out_init_ann.csv")} --refined-assign {os.path.join(output_dir, "out_refined_ann.csv")} --final-assign {os.path.join(output_dir, "out_final_ann.csv")}'
 rukki_line += " --marker-sparsity 5000 --issue-sparsity 1000 "
+rukki_line += " --try-fill-bubbles  --fillable-bubble-diff 1000 --fillable-bubble-len 500000 --assign-tangles --tangle-allow-deadend --solid-homozygous-cov-coeff 1.1 --solid-ratio 1.5 --hap-names haplotype1,haplotype2"
 rukki_output_line = f' -p {rukki_output_tsv}'
 os.system(rukki_line + rukki_output_line)
 rukki_output_line = f' --gaf-format -p {rukki_output_gaf}'
 os.system(rukki_line + rukki_output_line)
+
 
 trio_file = os.path.join(input_dir, "unitig-popped-unitig-normal-connected-tip.trio.colors.csv")
 print (rukki_output_tsv)
