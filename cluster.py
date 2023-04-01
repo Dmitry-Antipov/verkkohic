@@ -233,7 +233,9 @@ def run_clustering (graph_gfa, homologous_nodes, hic_byread, output_dir):
         for id in range(0, 2):
             cur_comp = component_colors[line[id]]
             next_comp = component_colors[line[1 - id]]
-            if not (cur_comp in next_comps):
+            if cur_comp == next_comp:
+                continue
+            if (not (cur_comp in next_comps)):
                 next_comps[cur_comp] = set()
             next_comps[cur_comp].add(next_comp)
 
@@ -245,7 +247,7 @@ def run_clustering (graph_gfa, homologous_nodes, hic_byread, output_dir):
                     logging_f.write(f"Attempt to restore removed link in former rDNA component between {line[0]} {line[1]} forbidden\n")
                 else:
                     for id in range(0, 2):
-                        if next_comps[component_colors[line[id]]].size() > 1:
+                        if len (next_comps[component_colors[line[id]]]) > 1:
                             logging_f.write(f"Connected component of node {line[id]} color {component_colors[line[id]]} connected to:\n")
                             for j in next_comps[component_colors[line[id]]]:
                                 logging_f.write(f"connection {j}\n")
