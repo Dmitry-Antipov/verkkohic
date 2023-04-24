@@ -1,14 +1,13 @@
 #!/bin/bash
 
 set -e -o pipefail
-
-mkdir -p $2/6-gfase_rukki
-
+mkdir -p $2/6-hicverkko_rukki
+ 
 echo "---Running rukki on the resulting clustering"
 params=""
-params="$params --init-assign $2/6-gfase_rukki/out_init_ann.csv"
-params="$params --refined-assign $2/6-gfase_rukki/out_refined_ann.csv"
-params="$params --final-assign $2/6-gfase_rukki/out_final_ann.csv"
+params="$params --init-assign $2/6-hicverkko_rukki/out_init_ann.csv"
+params="$params --refined-assign $2/6-hicverkko_rukki/out_refined_ann.csv"
+params="$params --final-assign $2/6-hicverkko_rukki/out_final_ann.csv"
 params="$params --marker-sparsity 5000"
 params="$params --issue-sparsity 1000"
 params="$params --try-fill-bubbles"

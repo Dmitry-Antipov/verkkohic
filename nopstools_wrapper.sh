@@ -76,7 +76,6 @@ echo "---Parsing alignments"
 samtools view -F 0x800 -q 1 $BWABAM | python3 $SCRIPT_DIR/parse_sam_pairs.py  > $2/hic_mapping.byread.output
 python3 $SCRIPT_DIR/hicverkko.py $1 $2 
 
-mkdir -p $2/6-gfase_rukki
-ln -sf $(realpath $2/hicverkko.colors.tsv) $2/6-gfase_rukki/unitig-popped-unitig-normal-connected-tip.colors.csv
-
+mkdir -p $2/6-hicverkko_rukki
+ln -sf $(realpath $2/hicverkko.colors.tsv) $2/6-hicverkko_rukki/unitig-popped-unitig-normal-connected-tip.colors.csv
 bash $SCRIPT_DIR/rukki.sh $1 $2 $3 $slurm
