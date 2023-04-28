@@ -1,0 +1,161 @@
+HIFI_READS = config.get('HIFI_READS')
+ONT_READS  = config.get('ONT_READS')
+HIC_READS1  = config.get('HIC_READS1')
+HIC_READS2  = config.get('HIC_READS2')
+
+
+#runtime opt string like slurm or mem limits
+VERKKO_OPTS = config.get('VERKKO_OPTS')
+if VERKKO_OPTS == "None":
+    VERKKO_OPTS = ""
+
+PREVIOUS_VERKKO_RUN = config.get('PREVIOUS_VERKKO_RUN')
+VERKKO = config.get('VERKKO')
+PSTOOLS = config.get('PSTOOLS')
+
+#TODO remove after merging in verkko
+HICVERKKO = config.get('HICVERKKO')
+
+#TODO slurm option verkko from config?
+
+rule all:
+    input:
+        'final_consensus/assembly.fasta'
+
+rule getUncompressedUnitigs:
+    input:
+        ont_reads  = ONT_READS,
+        hifi_reads = HIFI_READS,
+        verkko_run = PREVIOUS_VERKKO_RUN,
+#        aux_paths = '{PREVIOUS_VERKKO_RUN}/6-layoutContigs/consensus_paths.txt'
+    output:
+#can not add this as output since it will create 6-layoutContigs folder which will break verkko.sh logic
+#        unitig_scfmap = 'consensus_unitigs/6-layoutContigs/unitig-popped.layout.scfmap',
+        unitig_assembly = 'consensus_unitigs/assembly.fasta',
+        unitig_dir = directory('consensus_unitigs')
+#TODO: directory output
+#       shell: 'echo {VERKKO}/bin/verkko {VERKKO_OPTS} --paths {input.verkko_run}/6-layoutContigs/consensus_paths.txt --assembly {PREVIOUS_VERKKO_RUN} -d consensus_unitigs --hifi {HIFI_READS} --nano {ONT_READS}'
+    threads:
+        100
+    shell: 'sh {VERKKO}/bin/verkko {VERKKO_OPTS} --threads {threads} --paths  {input.verkko_run}/6-layoutContigs/consensus_paths.txt --assembly {PREVIOUS_VERKKO_RUN} -d consensus_unitigs --hifi {HIFI_READS} --nano {ONT_READS}'
+        
+rule copyFiles:
+    input:
+        verkko_run = PREVIOUS_VERKKO_RUN,
+#        previous_graph = 'PREVIOUS_VERKKO_RUN/assembly.homopolymer-compressed.gfa',
+#        previous_noseq_graph = 'PREVIOUS_VERKKO_RUN/assembly.homopolymer-compressed.noseq.gfa',
+#        unitig_scfmap = 'consensus_unitigs/6-layoutContigs/unitig-popped.layout.scfmap',
+        unitig_dir = 'consensus_unitigs',
+        unitig_assembly = 'consensus_unitigs/assembly.fasta'
+    output:
+        rename_map = 'contigs_rename.map',
+        unitig_fasta = 'unitigs.fasta',
+        unitig_hpc = 'unitigs.hpc.fasta' ,
+        unitig_graph = 'unitigs.hpc.noseq.gfa'
+    shell:
+        '''
+cat {input.unitig_dir}/6-layoutContigs/unitig-popped.layout.scfmap | awk '{{if (match($1, "path")) print $2"\\t"$3}}' > {output.rename_map}
+python3 {VERKKO}/lib/verkko/scripts/process_reads.py rename {output.unitig_fasta}  {output.rename_map} {input.unitig_assembly}
+
+awk '/^S/{{print ">"$2"\\n"$3}}' {input.verkko_run}/assembly.homopolymer-compressed.gfa | fold > {output.unitig_hpc}
+cp {input.verkko_run}/assembly.homopolymer-compressed.noseq.gfa {output.unitig_graph}
+
+        '''
+       
+rule runMashMap:
+    input:
+        unitigs_hpc = 'unitigs.hpc.fasta'
+    output:
+        unitigs_matches = 'unitigs.matches'
+    threads:
+        100
+    shell:
+        '''
+echo "---Running mashmap"
+mashmap -r {input.unitigs_hpc} -q {input.unitigs_hpc} -t {threads} -f none --pi 95 -s 10000 -o mashmap.out
+cat mashmap.out |awk '{{if ($NF > 99 && $4-$3 > 500000 && $1 != $6) print $1"\\t"$6}}'|sort |uniq > {output.unitigs_matches}
+        '''
+
+rule alignHIC:
+    input:
+        HIC_READS1,
+        HIC_READS2,
+        unitigs = 'unitigs.fasta'       
+    output:
+        byread_mapping = 'hic_mapping.byread.outputPSTOOLS'
+    shell:
+        '''
+echo "---Mapping {HIC_READS1} and {HIC_READS2} to {input.unitigs}"
+echo "pstools will write BIG temporary files to current directory $PWD"
+echo "{PSTOOLS}/pstools hic_mapping_unitig -k19 -t60 -o map_uncompressed.out {input.unitigs} <(cat {HIC_READS1}) <(cat {HIC_READS2})"
+{PSTOOLS}/pstools hic_mapping_unitig -k19 -t60 -o map_uncompressed.out {input.unitigs} <(cat {HIC_READS1}) <(cat {HIC_READS2})
+mv hic_name_connection.output {output.byread_mapping}
+        '''
+
+rule alignBWA:
+    input:
+        HIC_READS1,
+        HIC_READS2,
+        unitigs = 'unitigs.fasta'
+    output:
+        bwa_mapping = 'hic_to_assembly.sorted_by_read.bam'
+    threads:
+        100
+    shell:
+        '''
+echo "---Mapping {HIC_READS1} and {HIC_READS2} to {input.unitigs} with BWA"
+bwa index {input.unitigs} && bwa mem -t {threads} -5 -S -P {input.unitigs} <(cat $HIC_READS1) <(cat $HIC_READS2) | samtools view -bh -@ {threads} -q 1 - | samtools sort -n -@ {threads} - -o {output.bwa_mapping} 
+
+        '''
+rule transformBWA:
+    input:
+        bwa_mapping = 'hic_to_assembly.sorted_by_read.bam'
+    output:
+        byread_mapping = 'hic_mapping.byread.output'
+    shell:
+        '''
+samtools view -F 0x800 -q 1 {input.bwa_mapping} | python3 {HICVERKKO}/parse_sam_pairs.py  > {output.byread_mapping}
+        '''
+
+rule hicPhasing:
+    input:
+        old_run = PREVIOUS_VERKKO_RUN,
+        mashmap_matches = 'unitigs.matches',
+        hicmapping_byread = 'hic_mapping.byread.output',
+        graph='unitigs.hpc.noseq.gfa'
+    output:
+        hic_compressed = 'hic.byread.compressed',
+        hic_binned_unitigs = 'hicverkko.colors.tsv'
+    shell: 'python3 {HICVERKKO}/hicverkko.py {input.old_run} . '
+#    shell: 'echo $PATH'       
+
+        
+rule runRukki:
+    input:
+        graph = 'unitigs.hpc.noseq.gfa',
+        binning = 'hicverkko.colors.tsv'
+    output:
+        tsv_path = 'rukki.paths.tsv',
+        gaf_path = 'rukki.paths.gaf'
+    shell:
+#params taken from 6-rukki.sm
+        '''
+echo "---Running rukki on the resulting clustering"
+params=" --init-assign out_init_ann.csv --refined-assign out_refined_ann.csv --final-assign out_final_ann.csv --marker-sparsity 5000 --issue-sparsity 1000 --try-fill-bubbles  --issue-len 200000  --marker-ratio 5. --issue-ratio 3. --issue-cnt 100"
+
+{VERKKO}/lib/verkko/bin/rukki trio -g {input.graph} -m {input.binning} --gaf-format -p {output.tsv_path} $params
+{VERKKO}/lib/verkko/bin/rukki trio -g {input.graph} -m {input.binning} --gaf-format -p {output.gaf_path} $params
+        '''
+
+rule getFinalContigs:
+    input:
+        ONT_READS,
+        HIFI_READS,
+        PREVIOUS_VERKKO_RUN,
+        rukki_paths = 'rukki.paths.gaf'
+    output:
+        'final_consensus/assembly.fasta'
+    threads:
+        100   
+    shell: 'sh {VERKKO}/bin/verkko {VERKKO_OPTS} --threads {threads} --paths {input.rukki_paths} --assembly {PREVIOUS_VERKKO_RUN} -d final_consensus --hifi {HIFI_READS} --nano {ONT_READS}'
+    
