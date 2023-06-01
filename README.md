@@ -9,7 +9,7 @@ Hi-C support for verkko is finally integrated within main verkko repo, https://g
 
 
 
-This contains scripts for HiC integration in verkko.
+<s>This contains scripts for HiC integration in verkko.
 
 Main script to run is all_wrapper.sh
 It runs hi-c scaffolding pipeline over the preexisting previous verkko (either hifi+ont or hifi+ont+trio) run.
@@ -33,4 +33,4 @@ As alternative, with precomputed alignment you can run ./norealign_wrapper.sh <p
 For interface simplicity script expects that all input reads are located in <reads_folder>, with hifi/ont/hic subfolders for each data type.
 Reads can be in {fastq/fasta}.gz format; hic paired reads should be in separate files with names like smthR1.fastq.gz and smthR2.fastq.gz
 
-Final assembly will be in <output_folder>/final_consensus/assembly.fasta
+Final assembly will be in <output_folder>/final_consensus/assembly.fasta</s>
