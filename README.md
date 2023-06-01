@@ -1,5 +1,11 @@
 THIS REPO IS NOT SUPPORTED ANYMORE. 
+
 Hi-C support for verkko is finally integrated within main verkko repo, https://github.com/marbl/verkko. All further development is and will be there.
+
+
+
+
+
 
 
 
