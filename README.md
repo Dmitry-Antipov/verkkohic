@@ -1,13 +1,13 @@
-THIS REPO IS NOT SUPPORTED ANYMORE. 
+# <span style="color: red;">THIS REPO IS NOT SUPPORTED ANYMORE</span>
 
-Hi-C support for verkko is finally integrated within main verkko repo, https://github.com/marbl/verkko. All further development is and will be there.
-
-
-
+## Hi-C and <span style="color: red;">Pore-C</span> support for verkko is finally integrated within main verkko repo, https://github.com/marbl/verkko. 
+There are lots of improvements there that makes this repo's version completely outdated! If you want to use our phasing separate from verkko assembler, please contact us
 
 
 
-
+&nbsp;  
+&nbsp;  
+&nbsp;  
 
 <s>This contains scripts for HiC integration in verkko.
 
